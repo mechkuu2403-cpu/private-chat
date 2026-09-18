@@ -1,1 +1,14 @@
-
+{
+  "name": "private-chat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Private temporary two-person chat",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}
