@@ -5,189 +5,169 @@ const { Server } = require("socket.io");
 const app = express();
 const server = http.createServer(app);
 
-const io = new Server(server, {
-  cors: {
-    origin: "*"
-  }
-});
+const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 const ROOM_CODE = "592007";
 
-// Temporary rooms.
-// Messages are NOT saved in a database.
 const rooms = new Map();
 
 app.use(express.static("public"));
 
 app.get("/health", (req, res) => {
-  res.json({
-    status: "online",
-    service: "private-chat"
-  });
+    res.send("Private Chat Server Online");
 });
 
 io.on("connection", (socket) => {
-  console.log("Connected:", socket.id);
 
-  socket.on("join-room", ({ code, name }) => {
-    if (code !== ROOM_CODE) {
-      socket.emit("join-error", "Wrong room code.");
-      return;
-    }
+    console.log("CONNECTED:", socket.id);
 
-    if (!name || typeof name !== "string") {
-      socket.emit("join-error", "Please enter your name.");
-      return;
-    }
+    socket.on("join-room", (data) => {
 
-    const cleanName = name.trim().slice(0, 30);
+        const code = String(data?.code || "").trim();
+        const name = String(data?.name || "").trim();
 
-    if (!cleanName) {
-      socket.emit("join-error", "Please enter your name.");
-      return;
-    }
+        console.log("JOIN REQUEST:", socket.id, code, name);
 
-    if (!rooms.has(ROOM_CODE)) {
-      rooms.set(ROOM_CODE, new Map());
-    }
+        if (code !== ROOM_CODE) {
+            socket.emit("join-error", "Wrong room code.");
+            return;
+        }
 
-    const room = rooms.get(ROOM_CODE);
+        if (!name) {
+            socket.emit("join-error", "Name required.");
+            return;
+        }
 
-    // Maximum 2 people
-    if (room.size >= 2 && !room.has(socket.id)) {
-      socket.emit("join-error", "Room is full.");
-      return;
-    }
+        if (!rooms.has(ROOM_CODE)) {
+            rooms.set(ROOM_CODE, new Map());
+        }
 
-    socket.join(ROOM_CODE);
+        const room = rooms.get(ROOM_CODE);
 
-    room.set(socket.id, {
-      name: cleanName,
-      joinedAt: Date.now()
+        if (room.size >= 2 && !room.has(socket.id)) {
+            socket.emit("join-error", "Room already has 2 people.");
+            return;
+        }
+
+        socket.join(ROOM_CODE);
+
+        room.set(socket.id, {
+            name: name.substring(0, 30),
+            online: true
+        });
+
+        socket.data.room = ROOM_CODE;
+        socket.data.name = name.substring(0, 30);
+
+        socket.emit("joined", {
+            name: socket.data.name
+        });
+
+        updateUsers();
+
+        console.log(
+            "ROOM USERS:",
+            [...room.values()].map(u => u.name)
+        );
     });
 
-    socket.data.room = ROOM_CODE;
-    socket.data.name = cleanName;
+    function updateUsers() {
 
-    // Tell the user their own information
-    socket.emit("joined", {
-      name: cleanName,
-      roomCode: ROOM_CODE
-    });
+        const room = rooms.get(ROOM_CODE);
 
-    // Send current users to everyone
-    sendUsers();
+        if (!room) return;
 
-    // Tell the other person that someone joined
-    socket.to(ROOM_CODE).emit("user-joined", {
-      name: cleanName
-    });
+        const users = [];
 
-    console.log(`${cleanName} joined the room`);
-  });
+        for (const [id, user] of room.entries()) {
+            users.push({
+                id: id,
+                name: user.name,
+                online: true
+            });
+        }
 
-  // Text/image/file message relay
-  socket.on("send-message", (message) => {
-    if (!socket.data.room) return;
-
-    const room = rooms.get(socket.data.room);
-    if (!room || !room.has(socket.id)) return;
-
-    const messageData = {
-      id: message?.id || `${Date.now()}-${Math.random()}`,
-      type: message?.type || "text",
-      text: typeof message?.text === "string"
-        ? message.text.slice(0, 10000)
-        : "",
-      fileName: message?.fileName || null,
-      fileType: message?.fileType || null,
-      fileData: message?.fileData || null,
-      reply: message?.reply || null,
-      time: Date.now(),
-      senderId: socket.id,
-      senderName: socket.data.name
-    };
-
-    // Send to everyone in room, including sender
-    io.to(socket.data.room).emit("new-message", messageData);
-  });
-
-  // Typing indicator
-  socket.on("typing", (isTyping) => {
-    if (!socket.data.room) return;
-
-    socket.to(socket.data.room).emit("typing", {
-      name: socket.data.name,
-      typing: Boolean(isTyping)
-    });
-  });
-
-  // Delivered status
-  socket.on("message-delivered", ({ messageId }) => {
-    if (!socket.data.room) return;
-
-    socket.to(socket.data.room).emit("message-delivered", {
-      messageId
-    });
-  });
-
-  // Read status
-  socket.on("message-read", ({ messageId }) => {
-    if (!socket.data.room) return;
-
-    socket.to(socket.data.room).emit("message-read", {
-      messageId
-    });
-  });
-
-  // User requests current room status
-  socket.on("get-users", () => {
-    sendUsers();
-  });
-
-  function sendUsers() {
-    const room = rooms.get(ROOM_CODE);
-
-    if (!room) {
-      socket.emit("room-users", []);
-      return;
+        io.to(ROOM_CODE).emit("room-users", users);
     }
 
-    const users = [...room.entries()].map(([id, user]) => ({
-      id,
-      name: user.name,
-      online: true
-    }));
+    socket.on("send-message", (message) => {
 
-    io.to(ROOM_CODE).emit("room-users", users);
-  }
+        if (!socket.data.room) return;
 
-  socket.on("disconnect", () => {
-    console.log("Disconnected:", socket.id);
+        const room = rooms.get(socket.data.room);
 
-    const roomCode = socket.data.room;
+        if (!room || !room.has(socket.id)) return;
 
-    if (!roomCode || !rooms.has(roomCode)) return;
+        const msg = {
+            id: message.id,
+            type: message.type || "text",
+            text: message.text || "",
+            fileName: message.fileName || null,
+            fileType: message.fileType || null,
+            fileData: message.fileData || null,
+            reply: message.reply || null,
+            time: Date.now(),
+            senderId: socket.id,
+            senderName: socket.data.name
+        };
 
-    const room = rooms.get(roomCode);
+        io.to(socket.data.room).emit("new-message", msg);
+    });
 
-    room.delete(socket.id);
+    socket.on("typing", (typing) => {
 
-    if (room.size === 0) {
-      // Delete the room completely.
-      // Nothing is stored permanently.
-      rooms.delete(roomCode);
-    } else {
-      io.to(roomCode).emit("user-left", {
-        name: socket.data.name
-      });
+        if (!socket.data.room) return;
 
-      sendUsers();
-    }
-  });
+        socket.to(socket.data.room).emit("typing", {
+            name: socket.data.name,
+            typing: !!typing
+        });
+    });
+
+    socket.on("message-delivered", (data) => {
+
+        if (!socket.data.room) return;
+
+        socket.to(socket.data.room).emit(
+            "message-delivered",
+            data
+        );
+    });
+
+    socket.on("message-read", (data) => {
+
+        if (!socket.data.room) return;
+
+        socket.to(socket.data.room).emit(
+            "message-read",
+            data
+        );
+    });
+
+    socket.on("disconnect", () => {
+
+        console.log("DISCONNECTED:", socket.id);
+
+        const roomCode = socket.data.room;
+
+        if (!roomCode) return;
+
+        const room = rooms.get(roomCode);
+
+        if (!room) return;
+
+        room.delete(socket.id);
+
+        if (room.size === 0) {
+            rooms.delete(roomCode);
+            console.log("ROOM DELETED");
+        } else {
+            updateUsers();
+        }
+    });
 });
 
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+    console.log("SERVER RUNNING ON PORT:", PORT);
 });
