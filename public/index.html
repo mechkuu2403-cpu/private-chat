@@ -1,1 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NovaStore</title>
 
+<script src="/socket.io/socket.io.js"></script>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    background:#f7f7f8;
+    color:#171717;
+}
+
+button,input{
+    font:inherit;
+}
+
+button{
+    cursor:pointer;
+}
+
+.hidden{
+    display:none!important;
+}
+
+/* STORE */
+
+#storePage{
+    min-height:100vh;
+}
+
+header{
+    height:70px;
+    background:white;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 6%;
+    border-bottom:1px solid #eee;
+    position:sticky;
+    top:0;
+    z-index:10;
+}
+
+.logo{
+    font-size:25px;
+    font-weight:800;
+}
+
+.logo span{
+    color:#6c5ce7;
+}
+
+.search{
+    width:38%;
+    padding:12px 18px;
+    border:1px solid #ddd;
+    border-radius:25px;
+    outline:none;
+}
+
+.cart{
+    font-size:23px;
+}
+
+nav{
+    background:white;
+    display:flex;
+    justify-content:center;
+    gap:35px;
+    padding:16px;
+    border-bottom:1px solid #eee;
+}
+
+nav a{
+    color:#555;
+    text-decoration:none;
+    font-size:14px;
+}
+
+.hero{
+    margin:30px auto;
+    width:88%;
+    height:360px;
+    border-radius:25px;
+    overflow:hidden;
+    background:
+      linear-gradient(90deg,rgba(0,0,0,.65),rgba(0,0,0,.05)),
+      url("https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1600&q=80")
+      center/cover;
+    display:flex;
+    align-items:center;
+    padding:50px;
+    color:white;
+}
+
+.hero h1{
+    font-size:48px;
+    max-width:550px;
+}
+
+.hero p{
+    margin:15px 0 25px;
+    font-size:17px;
+}
+
+.hero button,
+.joinBtn{
+    border:0;
+    background:#6c5ce7;
+    color:white;
+    padding:14px 25px;
+    border-radius:10px;
+    font-weight:bold;
+}
+
+section{
+    width:88%;
+    margin:55px auto;
+}
+
+.sectionTitle{
+    font-size:28px;
+    margin-bottom:25px;
+}
+
+.categories,
+.products{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:20px;
+}
+
+.category,
+.product{
+    background:white;
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:0 5px 20px rgba(0,0,0,.05);
+}
+
+.category img,
+.product img{
+    width:100%;
+    height:190px;
+    object-fit:cover;
+}
+
+.category h3,
+.product div{
+    padding:16px;
+}
+
+.product h3{
+    margin-bottom:8px;
+}
+
+.price{
+    color:#6c5ce7;
+    font-weight:bold;
+}
+
+.offer{
+    min-height:250px;
+    border-radius:22px;
+    padding:45px;
+    color:white;
+    background:
+      linear-gradient(90deg,rgba(0,0,0,.7),rgba(0,0,0,.1)),
+      url("https://images.unsplash.com/photo-1607083206968-13611e3d76db?auto=format&fit=crop&w=1500&q=80")
+      center/cover;
+}
+
+/* JOIN */
+
+.joinBox{
+    background:white;
+    border-radius:22px;
+    padding:45px;
+    text-align:center;
+    box-shadow:0 5px 25px rgba(0,0,0,.06);
+}
+
+.joinBox h2{
+    font-size:30px;
+    margin-bottom:10px;
+}
+
+.joinBox p{
+    color:#777;
+    margin-bottom:25px;
+}
+
+/* MODAL */
+
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.6);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+    padding:20px;
+}
+
+.modalBox{
+    background:white;
+    width:100%;
+    max-width:400px;
+    border-radius:22px;
+    padding:30px;
+    position:relative;
+}
+
+.close{
+    position:absolute;
+    right:20px;
+    top:15px;
+    border:0;
+    background:none;
+    font-size:25px;
+}
+
+.modalBox h2{
+    margin-bottom:10px;
+}
+
+.modalBox p{
+    color:#777;
+    margin-bottom:20px;
+}
+
+.modalBox input{
+    width:100%;
+    padding:14px;
+    border:1px solid #ddd;
+    border-radius:10px;
+    outline:none;
+    margin-bottom:15px;
+}
+
+.modalBox button:not(.close){
+    width:100%;
+}
+
+/* CHAT */
+
+#chatPage{
+    position:fixed;
+    inset:0;
+    background:#efeae2;
+    z-index:200;
+    display:flex;
+    flex-direction:column;
+}
+
+.chatHeader{
+    height:65px;
+    background:#6c5ce7;
+    color:white;
+    display:flex;
+    align-items:center;
+    padding:8px 15px;
+    gap:12px;
+}
+
+.backBtn{
+    border:0;
+    background:none;
+    color:white;
+    font-size:25px;
+}
+
+.avatar{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:white;
+    color:#6c5ce7;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+}
+
+.userInfo{
+    flex:1;
+}
+
+.userName{
+    font-weight:bold;
+}
+
+.status{
+    font-size:12px;
+    opacity:.85;
+    margin-top:3px;
+}
+
+.messages{
+    flex:1;
+    overflow-y:auto;
+    padding:18px 12px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+
+.message{
+    max-width:78%;
+    padding:9px 11px 6px;
+    border-radius:12px;
+    position:relative;
+    word-wrap:break-word;
+    box-shadow:0 1px 2px rgba(0,0,0,.1);
+}
+
+.message.mine{
+    align-self:flex-end;
+    background:#d9fdd3;
+    border-top-right-radius:3px;
+}
+
+.message.theirs{
+    align-self:flex-start;
+    background:white;
+    border-top-left-radius:3px;
+}
+
+.messageText{
+    font-size:15px;
+    white-space:pre-wrap;
+}
+
+.messageMeta{
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    gap:4px;
+    margin-top:3px;
+    font-size:10px;
+    color:#777;
+}
+
+.ticks{
+    color:#777;
+}
+
+.ticks.read{
+    color:#2779ff;
+}
+
+.replyBox{
+    border-left:3px solid #6c5ce7;
+    background:rgba(108,92,231,.08);
+    padding:6px 8px;
+    margin-bottom:6px;
+    border-radius:5px;
+    font-size:12px;
+    color:#555;
+}
+
+.typing{
+    min-height:25px;
+    padding:0 15px;
+    color:#666;
+    font-size:12px;
+}
+
+.dots{
+    display:inline-flex;
+    gap:3px;
+}
+
+.dots span{
+    width:5px;
+    height:5px;
+    background:#777;
+    border-radius:50%;
+    animation:bounce 1s infinite;
+}
+
+.dots span:nth-child(2){
+    animation-delay:.15s;
+}
+
+.dots span:nth-child(3){
+    animation-delay:.3s;
+}
+
+@keyframes bounce{
+    0%,60%,100%{transform:translateY(0)}
+    30%{transform:translateY(-4px)}
+}
+
+.replyPreview{
+    background:white;
+    padding:8px 45px 8px 12px;
+    position:relative;
+    border-top:1px solid #ddd;
+    font-size:13px;
+}
+
+.replyPreview button{
+    position:absolute;
+    right:12px;
+    top:7px;
+    border:0;
+    background:none;
+    font-size:20px;
+}
+
+.chatInputArea{
+    background:#f0f0f0;
+    padding:8px;
+    display:flex;
+    gap:7px;
+    align-items:center;
+}
+
+.attach{
+    border:0;
+    background:none;
+    font-size:23px;
+    padding:7px;
+}
+
+.chatInput{
+    flex:1;
+    border:0;
+    outline:none;
+    border-radius:22px;
+    padding:12px 15px;
+    background:white;
+}
+
+.sendBtn{
+    width:45px;
+    height:45px;
+    border-radius:50%;
+    border:0;
+    background:#6c5ce7;
+    color:white;
+    font-size:18px;
+}
+
+.fileInput{
+    display:none;
+}
+
+.imageMsg{
+    max-width:220px;
+    max-height:300px;
+    border-radius:8px;
+    display:block;
+}
+
+/* MOBILE */
+
+@media(max-width:700px){
+
+    header{
+        padding:0 18px;
+    }
+
+    .search{
+        display:none;
+    }
+
+    nav{
+        gap:18px;
+        overflow:auto;
+        justify-content:flex-start;
+        padding-left:20px;
+    }
+
+    .hero{
+        width:94%;
+        height:330px;
+        padding:30px;
+    }
+
+    .hero h1{
+        font-size:34px;
+    }
+
+    section{
+        width:94%;
+    }
+
+    .categories,
+    .products{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .category img,
+    .product img{
+        height:140px;
+    }
+
+    .offer{
+        padding:30px;
+    }
+
+    .message{
+        max-width:85%;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- STORE -->
+
+<div id="storePage">
+
+<header>
+    <div class="logo">Nova<span>Store</span></div>
+    <input class="search" placeholder="Search products...">
+    <div class="cart">🛒</div>
+</header>
+
+<nav>
+    <a href="#">Home</a>
+    <a href="#">Categories</a>
+    <a href="#">New Arrivals</a>
+    <a href="#">Offers</a>
+</nav>
+
+<div class="hero">
+    <div>
+        <h1>Discover Something New.</h1>
+        <p>Explore our latest collection and find products you'll love.</p>
+        <button>Shop Now</button>
+    </div>
+</div>
+
+<section>
+    <h2 class="sectionTitle">Categories</h2>
+
+    <div class="categories">
+        <div class="category">
+            <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=700&q=80">
+            <h3>Watches</h3>
+        </div>
+
+        <div class="category">
+            <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80">
+            <h3>Shoes</h3>
+        </div>
+
+        <div class="category">
+            <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=700&q=80">
+            <h3>Headphones</h3>
+        </div>
+
+        <div class="category">
+            <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=700&q=80">
+            <h3>Fashion</h3>
+        </div>
+    </div>
+</section>
+
+<section>
+    <h2 class="sectionTitle">New Arrivals</h2>
+
+    <div class="products">
+
+        <div class="product">
+            <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=700&q=80">
+            <div>
+                <h3>Classic Watch</h3>
+                <span class="price">₹2,499</span>
+            </div>
+        </div>
+
+        <div class="product">
+            <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80">
+            <div>
+                <h3>Street Sneakers</h3>
+                <span class="price">₹3,999</span>
+            </div>
+        </div>
+
+        <div class="product">
+            <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=700&q=80">
+            <div>
+                <h3>Wireless Headphones</h3>
+                <span class="price">₹1,999</span>
+            </div>
+        </div>
+
+        <div class="product">
+            <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=700&q=80">
+            <div>
+                <h3>Premium T-Shirt</h3>
+                <span class="price">₹899</span>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<section>
+    <div class="offer">
+        <h2>Special Offers</h2>
+        <p style="margin:15px 0">Discover exclusive deals today.</p>
+        <button class="joinBtn">Explore Offers</button>
+    </div>
+</section>
+
+<section>
+    <div class="joinBox">
+        <h2>Private Space</h2>
+        <p>Join your private room.</p>
+        <button class="joinBtn" onclick="openRoom()">Join Room</button>
+    </div>
+</section>
+
+</div>
+
+
+<!-- ROOM MODAL -->
+
+<div id="roomModal" class="modal hidden">
+
+    <div class="modalBox">
+
+        <button class="close" onclick="closeRoom()">×</button>
+
+        <h2>Join Room</h2>
+        <p>Enter your room code.</p>
+
+        <input
+            id="roomCode"
+            type="password"
+            inputmode="numeric"
+            placeholder="Room code"
+            maxlength="6"
+        >
+
+        <button class="joinBtn" onclick="checkRoom()">
+            Continue
+        </button>
+
+        <p id="roomError"
+           style="color:#e74c3c;margin-top:12px;margin-bottom:0">
+        </p>
+
+    </div>
+
+</div>
+
+
+<!-- NAME MODAL -->
+
+<div id="nameModal" class="modal hidden">
+
+    <div class="modalBox">
+
+        <h2>Your Name</h2>
+        <p>Enter the name you want to use in the room.</p>
+
+        <input
+            id="nameInput"
+            type="text"
+            maxlength="30"
+            placeholder="Enter your name"
+        >
+
+        <button class="joinBtn" onclick="joinChat()">
+            Enter Chat
+        </button>
+
+        <p id="nameError"
+           style="color:#e74c3c;margin-top:12px;margin-bottom:0">
+        </p>
+
+    </div>
+
+</div>
+
+
+<!-- CHAT -->
+
+<div id="chatPage" class="hidden">
+
+    <div class="chatHeader">
+
+        <button class="backBtn" onclick="leaveChat()">‹</button>
+
+        <div class="avatar" id="avatar">
+            ?
+        </div>
+
+        <div class="userInfo">
+
+            <div class="userName" id="otherName">
+                Waiting...
+            </div>
+
+            <div class="status" id="status">
+                Connecting...
+            </div>
+
+        </div>
+
+    </div>
+
+    <div id="messages" class="messages"></div>
+
+    <div id="typing" class="typing"></div>
+
+    <div id="replyPreview"
+         class="replyPreview hidden">
+
+        <span id="replyText"></span>
+
+        <button onclick="cancelReply()">×</button>
+
+    </div>
+
+    <div class="chatInputArea">
+
+        <input
+            type="file"
+            id="fileInput"
+            class="fileInput"
+            accept="image/*,.pdf,.txt,.zip,.doc,.docx"
+        >
+
+        <button
+            class="attach"
+            onclick="document.getElementById('fileInput').click()">
+            📎
+        </button>
+
+        <input
+            id="messageInput"
+            class="chatInput"
+            placeholder="Type a message..."
+            autocomplete="off"
+        >
+
+        <button
+            class="sendBtn"
+            onclick="sendMessage()">
+            ➤
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const socket = io();
+
+const ROOM_CODE = "592007";
+
+let myName = "";
+let otherUserId = null;
+let replyTo = null;
+let typingTimer = null;
+
+
+/* ---------------- STORE ---------------- */
+
+function openRoom(){
+
+    document.getElementById("roomModal")
+        .classList.remove("hidden");
+
+    document.getElementById("roomCode").focus();
+}
+
+function closeRoom(){
+
+    document.getElementById("roomModal")
+        .classList.add("hidden");
+
+    document.getElementById("roomError").textContent = "";
+}
+
+function checkRoom(){
+
+    const code =
+        document.getElementById("roomCode").value.trim();
+
+    const error =
+        document.getElementById("roomError");
+
+    if(code !== ROOM_CODE){
+
+        error.textContent = "Invalid room code.";
+        return;
+    }
+
+    error.textContent = "";
+
+    document.getElementById("roomModal")
+        .classList.add("hidden");
+
+    document.getElementById("nameModal")
+        .classList.remove("hidden");
+
+    document.getElementById("nameInput").focus();
+}
+
+
+/* ---------------- JOIN CHAT ---------------- */
+
+function joinChat(){
+
+    const name =
+        document.getElementById("nameInput")
+        .value.trim();
+
+    const error =
+        document.getElementById("nameError");
+
+    if(!name){
+
+        error.textContent = "Please enter your name.";
+        return;
+    }
+
+    myName = name;
+
+    error.textContent = "";
+
+    socket.emit("join-room", {
+        code: ROOM_CODE,
+        name: myName
+    });
+}
+
+
+/* ---------------- SERVER EVENTS ---------------- */
+
+socket.on("joined", data => {
+
+    document.getElementById("nameModal")
+        .classList.add("hidden");
+
+    document.getElementById("storePage")
+        .classList.add("hidden");
+
+    document.getElementById("chatPage")
+        .classList.remove("hidden");
+
+    document.getElementById("status")
+        .textContent = "Waiting for other person...";
+
+    document.getElementById("messages").innerHTML = "";
+
+    socket.emit("get-users");
+});
+
+
+socket.on("join-error", message => {
+
+    document.getElementById("nameError")
+        .textContent = message;
+});
+
+
+socket.on("room-users", users => {
+
+    const other =
+        users.find(user => user.id !== socket.id);
+
+    if(other){
+
+        otherUserId = other.id;
+
+        document.getElementById("otherName")
+            .textContent = other.name;
+
+        document.getElementById("status")
+            .textContent = "online";
+
+        document.getElementById("avatar")
+            .textContent =
+            other.name.charAt(0).toUpperCase();
+
+    }else{
+
+        otherUserId = null;
+
+        document.getElementById("otherName")
+            .textContent = "Waiting...";
+
+        document.getElementById("status")
+            .textContent = "Waiting for other person...";
+
+        document.getElementById("avatar")
+            .textContent = "?";
+    }
+});
+
+
+socket.on("user-joined", data => {
+
+    document.getElementById("otherName")
+        .textContent = data.name;
+
+    document.getElementById("status")
+        .textContent = "online";
+
+    document.getElementById("avatar")
+        .textContent =
+        data.name.charAt(0).toUpperCase();
+
+});
+
+
+socket.on("user-left", data => {
+
+    document.getElementById("status")
+        .textContent = "offline";
+
+    document.getElementById("typing")
+        .innerHTML = "";
+});
+
+
+/* ---------------- MESSAGES ---------------- */
+
+function sendMessage(){
+
+    const input =
+        document.getElementById("messageInput");
+
+    const text = input.value.trim();
+
+    if(!text) return;
+
+    const message = {
+
+        id:
+            Date.now() + "-" +
+            Math.random().toString(36).slice(2),
+
+        type: "text",
+
+        text: text,
+
+        reply: replyTo
+            ? {
+                text: replyTo.text,
+                sender: replyTo.senderName
+              }
+            : null
+    };
+
+    socket.emit("send-message", message);
+
+    input.value = "";
+
+    cancelReply();
+
+    socket.emit("typing", false);
+}
+
+
+socket.on("new-message", message => {
+
+    const mine =
+        message.senderId === socket.id;
+
+    addMessage(message, mine);
+
+    if(!mine){
+
+        socket.emit("message-delivered", {
+            messageId: message.id
+        });
+
+        socket.emit("message-read", {
+            messageId: message.id
+        });
+    }
+});
+
+
+function addMessage(message, mine){
+
+    const messages =
+        document.getElementById("messages");
+
+    const box =
+        document.createElement("div");
+
+    box.className =
+        "message " + (mine ? "mine" : "theirs");
+
+    box.dataset.id = message.id;
+
+    let html = "";
+
+    if(message.reply){
+
+        html += `
+            <div class="replyBox">
+                <b>${escapeHTML(message.reply.sender || "")}</b><br>
+                ${escapeHTML(message.reply.text || "")}
+            </div>
+        `;
+    }
+
+    if(message.type === "image" && message.fileData){
+
+        html += `
+            <img
+                class="imageMsg"
+                src="${message.fileData}"
+                alt="image"
+            >
+        `;
+
+    }else if(message.type === "file" && message.fileData){
+
+        html += `
+            <div style="padding:8px 0">
+                📎 ${escapeHTML(message.fileName || "File")}
+            </div>
+        `;
+
+    }else{
+
+        html += `
+            <div class="messageText">
+                ${escapeHTML(message.text || "")}
+            </div>
+        `;
+    }
+
+    html += `
+        <div class="messageMeta">
+
+            <span>
+                ${formatTime(message.time)}
+            </span>
+
+            ${
+                mine
+                ? `<span class="ticks" data-ticks="${message.id}">
+                    ✓
+                   </span>`
+                : ""
+            }
+
+        </div>
+    `;
+
+    box.innerHTML = html;
+
+    box.addEventListener("contextmenu", e => {
+
+        e.preventDefault();
+
+        replyMessage(message);
+
+    });
+
+    messages.appendChild(box);
+
+    messages.scrollTop = messages.scrollHeight;
+}
+
+
+/* ---------------- DELIVERY / READ ---------------- */
+
+socket.on("message-delivered", data => {
+
+    const ticks =
+        document.querySelector(
+            `[data-ticks="${data.messageId}"]`
+        );
+
+    if(ticks){
+        ticks.textContent = "✓✓";
+    }
+});
+
+
+socket.on("message-read", data => {
+
+    const ticks =
+        document.querySelector(
+            `[data-ticks="${data.messageId}"]`
+        );
+
+    if(ticks){
+
+        ticks.textContent = "✓✓";
+        ticks.classList.add("read");
+    }
+});
+
+
+/* ---------------- REPLY ---------------- */
+
+function replyMessage(message){
+
+    replyTo = message;
+
+    document.getElementById("replyText")
+        .textContent =
+        (message.senderName || "Message") +
+        ": " +
+        (message.text || "Attachment");
+
+    document.getElementById("replyPreview")
+        .classList.remove("hidden");
+
+    document.getElementById("messageInput").focus();
+}
+
+
+function cancelReply(){
+
+    replyTo = null;
+
+    document.getElementById("replyPreview")
+        .classList.add("hidden");
+
+    document.getElementById("replyText")
+        .textContent = "";
+}
+
+
+/* ---------------- TYPING ---------------- */
+
+const messageInput =
+    document.getElementById("messageInput");
+
+messageInput.addEventListener("input", () => {
+
+    socket.emit("typing", true);
+
+    clearTimeout(typingTimer);
+
+    typingTimer = setTimeout(() => {
+
+        socket.emit("typing", false);
+
+    }, 1000);
+});
+
+
+socket.on("typing", data => {
+
+    const typing =
+        document.getElementById("typing");
+
+    if(data.typing){
+
+        typing.innerHTML = `
+            ${escapeHTML(data.name)}
+            is typing
+            <span class="dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+        `;
+
+    }else{
+
+        typing.innerHTML = "";
+    }
+});
+
+
+/* ---------------- FILE / IMAGE ---------------- */
+
+document.getElementById("fileInput")
+.addEventListener("change", function(){
+
+    const file = this.files[0];
+
+    if(!file) return;
+
+    // Simple size protection
+    if(file.size > 5 * 1024 * 1024){
+
+        alert("File size maximum 5 MB.");
+        this.value = "";
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function(e){
+
+        const isImage =
+            file.type.startsWith("image/");
+
+        socket.emit("send-message", {
+
+            id:
+                Date.now() + "-" +
+                Math.random().toString(36).slice(2),
+
+            type: isImage ? "image" : "file",
+
+            text: "",
+
+            fileName: file.name,
+
+            fileType: file.type,
+
+            fileData: e.target.result,
+
+            reply: replyTo
+                ? {
+                    text: replyTo.text,
+                    sender: replyTo.senderName
+                  }
+                : null
+        });
+
+        cancelReply();
+    };
+
+    reader.readAsDataURL(file);
+
+    this.value = "";
+});
+
+
+/* ---------------- UTILITIES ---------------- */
+
+function formatTime(timestamp){
+
+    return new Date(timestamp)
+        .toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+}
+
+
+function escapeHTML(text){
+
+    return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+/* ENTER TO SEND */
+
+messageInput.addEventListener("keydown", e => {
+
+    if(e.key === "Enter" && !e.shiftKey){
+
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+
+/* LEAVE CHAT */
+
+function leaveChat(){
+
+    socket.disconnect();
+
+    location.reload();
+}
+
+</script>
+
+</body>
+</html>
